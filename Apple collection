@@ -1,0 +1,147 @@
+
+-- ANIME DICE | APPLE MAGNET
+-- Delta Executor
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local running = false
+local targetApple = nil
+
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "AppleMagnetPanel"
+gui.ResetOnSpawn = false
+gui.Parent = game:GetService("CoreGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 220, 0, 145)
+frame.Position = UDim2.new(0.5, -110, 0.5, -72)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = frame
+
+local function makeButton(name, text, position, color)
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Text = text
+    button.Size = UDim2.new(0, 180, 0, 32)
+    button.Position = position
+    button.BackgroundColor3 = color
+    button.TextColor3 = Color3.new(1, 1, 1)
+    button.TextSize = 14
+    button.Parent = frame
+
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 6)
+    c.Parent = button
+
+    return button
+end
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundTransparency = 1
+title.Text = "APPLE MAGNET"
+title.TextColor3 = Color3.fromRGB(255, 190, 70)
+title.TextSize = 18
+title.Font = Enum.Font.GothamBold
+title.Parent = frame
+
+local start = makeButton(
+    "Start",
+    "START",
+    UDim2.new(0, 20, 0, 38),
+    Color3.fromRGB(35, 145, 75)
+)
+
+local stop = makeButton(
+    "Stop",
+    "STOP",
+    UDim2.new(0, 20, 0, 77),
+    Color3.fromRGB(180, 55, 55)
+)
+
+local close = makeButton(
+    "Close",
+    "CLOSE",
+    UDim2.new(0, 20, 0, 116),
+    Color3.fromRGB(65, 65, 75)
+)
+
+-- Find nearest apple
+local function findNearestApple()
+    local character = player.Character
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
+
+    local nearest = nil
+    local distance = 100
+
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if string.find(string.lower(obj.Name), "apple") then
+            local part
+
+            if obj:IsA("BasePart") then
+                part = obj
+            elseif obj:IsA("Model") then
+                part = obj.PrimaryPart or
+                    obj:FindFirstChildWhichIsA("BasePart", true)
+            end
+
+            if part then
+                local d = (root.Position - part.Position).Magnitude
+
+                if d < distance then
+                    distance = d
+                    nearest = part
+                end
+            end
+        end
+    end
+
+    return nearest
+end
+
+start.MouseButton1Click:Connect(function()
+    running = true
+    start.Text = "APPLE MAGNET: ON"
+end)
+
+stop.MouseButton1Click:Connect(function()
+    running = false
+    targetApple = nil
+    stop.Text = "STOPPED"
+end)
+
+close.MouseButton1Click:Connect(function()
+    running = false
+    gui:Destroy()
+end)
+
+-- Auto walk
+task.spawn(function()
+    while gui.Parent do
+        if running then
+            local character = player.Character
+            local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+            if humanoid then
+                local apple = findNearestApple()
+
+                if apple and apple.Parent then
+                    targetApple = apple
+                    humanoid:MoveTo(apple.Position)
+                end
+            end
+        end
+
+        task.wait(0.5)
+    end
+end)
