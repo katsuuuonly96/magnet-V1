@@ -1,0 +1,169 @@
+
+-- Anime Dice Apple Collector
+-- Delta Executor
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local SEARCH_RADIUS = 1000
+local SCAN_INTERVAL = 0.5
+
+local running = false
+local currentTarget = nil
+local lastScan = 0
+
+-- UI
+local gui = Instance.new("ScreenGui")
+gui.Name = "AppleCollectorUI"
+gui.ResetOnSpawn = false
+
+pcall(function()
+    gui.Parent = game:GetService("CoreGui")
+end)
+
+if not gui.Parent then
+    gui.Parent = player:WaitForChild("PlayerGui")
+end
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 220, 0, 145)
+frame.Position = UDim2.new(0.05, 0, 0.3, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 35)
+title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+title.Text = "APPLE COLLECTOR"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Parent = frame
+
+local function makeButton(name, text, y, color)
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Size = UDim2.new(0.85, 0, 0, 28)
+    button.Position = UDim2.new(0.075, 0, 0, y)
+    button.BackgroundColor3 = color
+    button.TextColor3 = Color3.new(1, 1, 1)
+    button.Text = text
+    button.Parent = frame
+    return button
+end
+
+local startButton = makeButton(
+    "Start", "START", 43, Color3.fromRGB(30, 150, 60)
+)
+
+local stopButton = makeButton(
+    "Stop", "STOP", 77, Color3.fromRGB(180, 50, 50)
+)
+
+local closeButton = makeButton(
+    "Close", "CLOSE", 111, Color3.fromRGB(70, 70, 70)
+)
+
+-- Character
+local function getCharacter()
+    local character = player.Character
+    if not character then return nil end
+
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local root = character:FindFirstChild("HumanoidRootPart")
+
+    if humanoid and root and humanoid.Health > 0 then
+        return character, humanoid, root
+    end
+end
+
+-- Find apple part
+local function getApplePart(object)
+    if not object.Name:lower():find("apple") then
+        return nil
+    end
+
+    if object:IsA("BasePart") then
+        return object
+    end
+
+    if object:IsA("Model") then
+        return object.PrimaryPart
+            or object:FindFirstChildWhichIsA("BasePart", true)
+    end
+
+    return nil
+end
+
+-- Find nearest apple within radius
+local function findNearestApple(root)
+    local nearest = nil
+    local nearestDistance = SEARCH_RADIUS
+
+    for _, object in ipairs(workspace:GetDescendants()) do
+        local part = getApplePart(object)
+
+        if part and part.Parent then
+            local distance = (root.Position - part.Position).Magnitude
+
+            if distance < nearestDistance then
+                nearestDistance = distance
+                nearest = part
+            end
+        end
+    end
+
+    return nearest
+end
+
+-- Start
+startButton.MouseButton1Click:Connect(function()
+    running = true
+    startButton.Text = "RUNNING..."
+end)
+
+-- Stop
+stopButton.MouseButton1Click:Connect(function()
+    running = false
+    currentTarget = nil
+    startButton.Text = "START"
+end)
+
+-- Close
+closeButton.MouseButton1Click:Connect(function()
+    running = false
+    gui:Destroy()
+end)
+
+-- Main loop
+RunService.Heartbeat:Connect(function()
+    if not running then return end
+
+    local character, humanoid, root = getCharacter()
+    if not character then return end
+
+    if tick() - lastScan >= SCAN_INTERVAL then
+        lastScan = tick()
+
+        if not currentTarget
+            or not currentTarget.Parent
+            or not currentTarget:IsDescendantOf(workspace) then
+
+            currentTarget = findNearestApple(root)
+        end
+    end
+
+    if currentTarget and currentTarget.Parent then
+        humanoid:MoveTo(currentTarget.Position)
+
+        local distance =
+            (root.Position - currentTarget.Position).Magnitude
+
+        if distance <= 5 then
+            currentTarget = nil
+        end
+    else
+        currentTarget = nil
+    end
+end)
