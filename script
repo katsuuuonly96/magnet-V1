@@ -1,0 +1,55 @@
+
+-- APPLE MAGNET V1
+-- Roblox Studio - ServerScriptService
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local RANGE = 100
+local SPEED = 35
+local APPLE_FOLDER = workspace:WaitForChild("Apples")
+
+RunService.Heartbeat:Connect(function()
+
+    for _, apple in ipairs(APPLE_FOLDER:GetChildren()) do
+
+        if apple:IsA("BasePart") and not apple.Anchored then
+
+            local closestPlayer = nil
+            local closestDistance = RANGE
+
+            for _, player in ipairs(Players:GetPlayers()) do
+
+                local character = player.Character
+                local root = character and
+                    character:FindFirstChild("HumanoidRootPart")
+
+                if root then
+
+                    local distance =
+                        (root.Position - apple.Position).Magnitude
+
+                    if distance < closestDistance then
+                        closestDistance = distance
+                        closestPlayer = root
+                    end
+
+                end
+            end
+
+            if closestPlayer then
+
+                local direction =
+                    closestPlayer.Position - apple.Position
+
+                if direction.Magnitude > 3 then
+                    apple.AssemblyLinearVelocity =
+                        direction.Unit * SPEED
+                end
+
+            end
+        end
+    end
+end)
+
+print("Apple Magnet V1 Loaded!")
